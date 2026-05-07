@@ -1,94 +1,72 @@
 import streamlit as st
 import pandas as pd
-import pydeck as pdk
 import folium
 from streamlit_folium import st_folium
-import numpy as np
+import pydeck as pdk
 
-# --- KONFIGURASI HALAMAN ---
-st.set_page_config(page_title="Geo-Spasial Master App", layout="wide")
+st.set_page_config(page_title="Data COVID-19 Padang", layout="wide")
 
-# --- NAVIGASI SIDEBAR ---
-# Gabungan konsep dari selectbox.ipynb
-st.sidebar.title("Navigasi Tugas")
-menu = st.sidebar.radio(
-    "Pilih Modul Visualisasi:",
-    ["🏠 Beranda", "📊 Widget Interaktif", "🏗️ Peta 3D (Pydeck)", "🗺️ Peta GeoJSON (Folium)"]
-)
+# --- DATA DUMMY: STATISTIK PER TAHUN ---
+# Menampilkan tren zona merah di beberapa kecamatan utama di Padang
+data_covid = pd.DataFrame({
+    'tahun': [2020, 2020, 2020, 2021, 2021, 2021, 2022, 2022, 2022, 2023, 2023, 2023],
+    'kecamatan': ['Padang Barat', 'Koto Tangah', 'Pauh', 'Padang Barat', 'Koto Tangah', 'Pauh', 'Padang Barat', 'Koto Tangah', 'Pauh', 'Padang Barat', 'Koto Tangah', 'Pauh'],
+    'lat': [-0.9515, -0.8500, -0.9300, -0.9515, -0.8500, -0.9300, -0.9515, -0.8500, -0.9300, -0.9515, -0.8500, -0.9300],
+    'lon': [100.3540, 100.3500, 100.4500, 100.3540, 100.3500, 100.4500, 100.3540, 100.3500, 100.4500, 100.3540, 100.3500, 100.4500],
+    'kasus': [150, 200, 80, 450, 600, 300, 100, 150, 50, 10, 20, 5],
+    'status_zona': ['Oranye', 'Merah', 'Kuning', 'Merah', 'Merah', 'Oranye', 'Kuning', 'Kuning', 'Hijau', 'Hijau', 'Hijau', 'Hijau']
+})
 
-# --- HALAMAN 1: BERANDA ---
-if menu == "🏠 Beranda":
-    st.title("Aplikasi Integrasi Visualisasi Data Geo-Spasial")
-    st.write("Aplikasi ini menggabungkan materi dari 4 notebook menjadi satu kesatuan.")
-    st.info("Gunakan menu di sidebar untuk berpindah antar modul.")
-    
-    # Konsep metric untuk ringkasan data
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Kota Fokus", "Padang")
-    c2.metric("Teknologi", "Streamlit")
-    c3.metric("Data", "Geo-JSON")
+# --- SIDEBAR & NAVIGASI ---
+st.sidebar.title("Filter Data")
+tahun_pilihan = st.sidebar.slider("Pilih Tahun:", 2020, 2023, 2021)
+df_filtered = data_covid[data_covid['tahun'] == tahun_pilihan]
 
-# --- HALAMAN 2: WIDGET (Konsep dari widgetslider & selectbox.ipynb) ---
-elif menu == "📊 Widget Interaktif":
-    st.title("Eksperimen Widget Slider & Selectbox")
-    
-    # Konsep dari widgetslider.ipynb
-    tahun = st.slider("Pilih Tahun Analisis", 2015, 2025, 2020)
-    st.write(f"Tahun yang dipilih: **{tahun}**")
-    
-    # Konsep dari selectbox.ipynb
-    kota = st.selectbox("Pilih Kota:", ["Padang", "Bukittinggi", "Payakumbuh", "Solok"])
-    if kota == "Padang":
-        st.success("Padang adalah ibu kota Sumatera Barat")
-    elif kota == "Bukittinggi":
-        st.info("Bukittinggi terkenal dengan Jam Gadang")
-    else:
-        st.warning(f"Menampilkan data untuk {kota}")
+# --- HALAMAN UTAMA ---
+st.title(f"📊 Pendataan Zona COVID-19 Kota Padang ({tahun_pilihan})")
+st.markdown("Visualisasi ini menunjukkan pergerakan status zona per kecamatan berdasarkan jumlah kasus dummy.")
 
-# --- HALAMAN 3: PETA TITIK (Alternatif Pydeck) ---
-elif menu == "🏗️ Peta 3D (Pydeck)":
-    st.title("Visualisasi Titik Koordinat")
-    st.write("Menampilkan titik lokasi menggunakan komponen bawaan st.map().")
-    
-    # Data dari pydeck.ipynb (Koordinat Padang)
-    data_padang = pd.DataFrame({
-        "lat": [-0.9471],
-        "lon": [100.4172]
-    })
+# Komponen Metrik
+total_kasus = df_filtered['kasus'].sum()
+zona_merah = len(df_filtered[df_filtered['status_zona'] == 'Merah'])
 
-    # Menggunakan st.map yang lebih stabil untuk lingkungan Colab
-    st.map(data_padang, zoom=11)
-    st.info("Catatan: st.map digunakan sebagai alternatif yang lebih ringan untuk lingkungan Colab.")
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Kasus", total_kasus)
+col2.metric("Kecamatan Zona Merah", zona_merah)
+col3.metric("Tahun Pantau", tahun_pilihan)
 
-# --- HALAMAN 4: FOLIUM (Konsep dari Untitled39.ipynb) ---
-elif menu == "🗺️ Peta GeoJSON (Folium)":
-    st.title("Peta GeoJSON & Color Picker")
-    
-    # Komponen Interaktif tambahan
-    warna = st.color_picker("Pilih Warna Wilayah", "#3498db")
-    
-    # Data Dummy GeoJSON
-    geojson_data = {
-        "type": "FeatureCollection",
-        "features": [{
-            "type": "Feature",
-            "properties": {"nama": "Wilayah Latihan"},
-            "geometry": {
-                "type": "Polygon",
-                "coordinates": [[[100.35, -0.90], [100.45, -0.90], [100.45, -1.00], [100.35, -1.00], [100.35, -0.90]]]
-            }
-        }]
-    }
+# --- VISUALISASI PETA ---
+tab1, tab2 = st.tabs(["🗺️ Peta Interaktif (Folium)", "🏗️ Visualisasi 3D (Pydeck)"])
 
-    m = folium.Map(location=[-0.9471, 100.4172], zoom_start=11)
-    folium.GeoJson(
-        geojson_data,
-        style_function=lambda x: {
-            "fillColor": warna,
-            "color": "black",
-            "weight": 2,
-            "fillOpacity": 0.5
-        }
-    ).add_to(m)
+with tab1:
+    m = folium.Map(location=[-0.9000, 100.3800], zoom_start=11)
+    for i, row in df_filtered.iterrows():
+        warna = 'red' if row['status_zona'] == 'Merah' else 'orange' if row['status_zona'] == 'Oranye' else 'green'
+        folium.CircleMarker(
+            location=[row['lat'], row['lon']],
+            radius=row['kasus']/20, # Ukuran berdasarkan jumlah kasus
+            color=warna,
+            fill=True,
+            fill_color=warna,
+            popup=f"{row['kecamatan']}: {row['kasus']} Kasus"
+        ).add_to(m)
+    st_folium(m, width=1000, height=500)
 
-    st_folium(m, width=800, height=500)
+with tab2:
+    st.pydeck_chart(pdk.Deck(
+        initial_view_state=pdk.ViewState(latitude=-0.9000, longitude=100.3800, zoom=10, pitch=45),
+        layers=[
+            pdk.Layer(
+                "ColumnLayer",
+                df_filtered,
+                get_position='[lon, lat]',
+                get_elevation='kasus',
+                elevation_scale=10,
+                radius=500,
+                get_fill_color="[255, kasus > 300 ? 0 : 150, 0, 150]",
+                pickable=True
+            ),
+        ],
+    ))
+
+st.write("Data mentah untuk tahun yang dipilih:", df_filtered)
